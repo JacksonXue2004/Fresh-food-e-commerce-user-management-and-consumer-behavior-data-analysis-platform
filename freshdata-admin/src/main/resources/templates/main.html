@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html  lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--360浏览器优先以webkit内核解析-->
+    <title>生鲜电商用户管理与数据分析平台</title>
+    <link rel="shortcut icon" href="favicon.ico">
+    <link href="../static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
+    <link href="../static/css/font-awesome.min.css" th:href="@{/css/font-awesome.min.css}" rel="stylesheet"/>
+    <link href="../static/css/animate.min.css" th:href="@{/css/animate.min.css}" rel="stylesheet"/>
+    <link href="../static/css/style.min.css" th:href="@{/css/style.min.css}" rel="stylesheet"/>
+    <style>
+        /* 全新生鲜电商主题 - 超级灵动版首页 */
+        body.gray-bg {
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 50%, #80deea 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 动态粒子背景 */
+        body.gray-bg::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(26, 179, 148, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(56, 239, 125, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(17, 153, 142, 0.05) 0%, transparent 50%);
+            animation: particleMove 40s ease-in-out infinite;
+            z-index: 0;
+        }
+        
+        @keyframes particleMove {
+            0%, 100% { 
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: translate(50px, -50px) scale(1.2);
+                opacity: 0.8;
+            }
+        }
+        
+        /* 页面淡入动画 */
+        .wrapper-content {
+            animation: fadeIn 0.6s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 欢迎区域美化 - 超级灵动版 */
+        .welcome-header {
+            background: linear-gradient(135deg, #11998e 0%, #1ab394 50%, #38ef7d 100%);
+            color: white;
+            padding: 60px 20px;
+            margin-bottom: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 45px rgba(26, 179, 148, 0.4);
+            position: relative;
+            overflow: hidden;
+            animation: slideInDown 0.8s ease-out;
+        }
+        
+        /* 欢迎区域动态波纹效果 */
+        .welcome-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.18) 0%, transparent 70%);
+            animation: ripple 8s ease-in-out infinite;
+        }
+        
+        .welcome-header::after {
+            content: '';
+            position: absolute;
+            bottom: -40%;
+            left: -8%;
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 70%);
+            animation: ripple 10s ease-in-out infinite reverse;
+        }
+        
+        @keyframes ripple {
+            0%, 100% { 
+                transform: translateY(0) scale(1);
+                opacity: 0.5;
+            }
+            50% { 
+                transform: translateY(-30px) scale(1.15);
+                opacity: 0.9;
+            }
+        }
+        
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .welcome-header h1 {
+            position: relative;
+            z-index: 1;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .welcome-header p {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 特色功能卡片美化 - 超级灵动版 */
+        .feature-box {
+            text-align: center;
+            padding: 40px 25px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fdfc 100%);
+            border: none;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(26, 179, 148, 0.12);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+        
+        .feature-box:nth-child(1) { animation-delay: 0.2s; }
+        .feature-box:nth-child(2) { animation-delay: 0.3s; }
+        .feature-box:nth-child(3) { animation-delay: 0.4s; }
+        .feature-box:nth-child(4) { animation-delay: 0.5s; }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .feature-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #11998e, #1ab394, #38ef7d);
+            transform: scaleX(0);
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .feature-box:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature-box:hover {
+            box-shadow: 0 20px 50px rgba(26, 179, 148, 0.35);
+            transform: translateY(-15px) scale(1.02);
+        }
+        
+        .feature-icon {
+            font-size: 64px;
+            background: linear-gradient(135deg, #11998e 0%, #1ab394 50%, #38ef7d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+        
+        @keyframes iconFloat {
+            0%, 100% { 
+                transform: translateY(0) rotate(0deg);
+            }
+            50% { 
+                transform: translateY(-10px) rotate(5deg);
+            }
+        }
+        
+        .feature-box h3 {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .feature-box p {
+            color: #666;
+            line-height: 1.8;
+        }
+        
+        /* ibox美化 */
+        .ibox {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        .ibox-title {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 2px solid #1ab394;
+            padding: 15px 20px;
+        }
+        
+        .ibox-title h5 {
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+        
+        .ibox-title h5 i {
+            color: #1ab394;
+            margin-right: 10px;
+        }
+        
+        .ibox-content {
+            padding: 25px;
+        }
+        
+        /* 数据统计美化 */
+        .ibox-content .text-center h1 {
+            font-weight: 700;
+            background: linear-gradient(135deg, #1ab394 0%, #27ae60 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: countUp 1s ease-out;
+        }
+        
+        @keyframes countUp {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .ibox-content .text-center small {
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* 快捷链接美化 */
+        .quick-link {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            color: #333;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quick-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1ab394 0%, #27ae60 100%);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+            z-index: -1;
+        }
+        
+        .quick-link:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .quick-link:hover {
+            color: white;
+            text-decoration: none;
+            border-left-color: #27ae60;
+            transform: translateX(10px);
+        }
+        
+        .quick-link i {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+        
+        /* 列表组美化 */
+        .list-group-item {
+            border: none;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            padding: 12px 15px;
+        }
+        
+        .list-group-item:hover {
+            background: #f8f9fa;
+            border-left-color: #1ab394;
+            transform: translateX(5px);
+        }
+        
+        .list-group-item i {
+            margin-right: 10px;
+        }
+        
+        /* 技术栈列表美化 */
+        .ibox-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .ibox-content ul li {
+            padding: 8px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .ibox-content ul li:hover {
+            transform: translateX(5px);
+        }
+        
+        .ibox-content ul li i {
+            margin-right: 10px;
+        }
+        
+        .ibox-content h4 {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1ab394;
+        }
+        
+        /* 页面装饰图片 */
+        .page-decorations {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .page-deco {
+            position: absolute;
+            opacity: 0.08;
+            animation: gentleFloat 30s ease-in-out infinite;
+        }
+        
+        .page-deco-1 {
+            width: 150px;
+            top: 20%;
+            right: 5%;
+            animation-delay: 0s;
+        }
+        
+        .page-deco-2 {
+            width: 120px;
+            bottom: 15%;
+            left: 8%;
+            animation-delay: 10s;
+        }
+        
+        .page-deco-3 {
+            width: 100px;
+            top: 50%;
+            left: 3%;
+            animation-delay: 20s;
+        }
+        
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(10deg); }
+        }
+        
+        /* 欢迎区域产品图片 */
+        .welcome-products {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        
+        .welcome-product {
+            position: absolute;
+            opacity: 0.2;
+            animation: welcomeFloat 8s ease-in-out infinite;
+        }
+        
+        .welcome-product-left {
+            width: 200px;
+            left: 5%;
+            bottom: 10%;
+            animation-delay: 0s;
+        }
+        
+        .welcome-product-right {
+            width: 180px;
+            right: 8%;
+            top: 15%;
+            animation-delay: 2s;
+        }
+        
+        @keyframes welcomeFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        
+        /* 响应式优化 */
+        @media (max-width: 768px) {
+            .welcome-header {
+                padding: 30px 20px;
+            }
+            
+            .feature-box {
+                margin-bottom: 15px;
+            }
+            
+            .page-decorations,
+            .welcome-products {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body class="gray-bg">
+    <!-- 背景装饰图片 -->
+    <div class="page-decorations">
+        <img th:src="@{/images/fresh/p7.png}" class="page-deco page-deco-1" alt="生鲜">
+        <img th:src="@{/images/fresh/p8.png}" class="page-deco page-deco-2" alt="蔬菜">
+        <img th:src="@{/images/fresh/p9.png}" class="page-deco page-deco-3" alt="水果">
+    </div>
+    
+    <div class="wrapper wrapper-content">
+        <!-- 欢迎区域 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="welcome-header text-center">
+                    <div class="welcome-products">
+                        <img th:src="@{/images/fresh/slider-img.png}" class="welcome-product welcome-product-left" alt="新鲜蔬菜">
+                        <img th:src="@{/images/fresh/slider-img2.png}" class="welcome-product welcome-product-right" alt="新鲜水果">
+                    </div>
+                    <h1><i class="fa fa-leaf"></i> 生鲜电商用户管理与数据分析平台</h1>
+                    <p class="m-t" style="font-size: 18px;">Fresh E-commerce User Management & Data Analysis Platform</p>
+                    <p class="m-t-md">专业的生鲜电商用户行为分析与管理系统</p>
+        </div>
+        </div>
+        </div>
+
+        <!-- 平台特色功能 -->
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="fa fa-users"></i>
+                    </div>
+                    <h3>用户管理</h3>
+                    <p>全方位的生鲜电商用户信息管理，支持用户增删改查、导入导出等功能。</p>
+                    </div>
+                </div>
+            <div class="col-sm-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="fa fa-bar-chart"></i>
+            </div>
+                    <h3>行为分析</h3>
+                    <p>10万+用户行为数据，多维度分析用户购买、浏览、收藏等行为特征。</p>
+                    </div>
+								</div>
+            <div class="col-sm-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="fa fa-shopping-cart"></i>
+									</div>
+                    <h3>消费分析</h3>
+                    <p>深度分析用户消费习惯、购买频次、订单金额等关键指标。</p>
+								</div>
+							</div>
+            <div class="col-sm-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="fa fa-pie-chart"></i>
+								</div>
+                    <h3>用户画像</h3>
+                    <p>构建完整的用户画像体系，实现精准的用户分类与价值评估。</p>
+									</div>
+								</div>
+							</div>
+
+        <!-- 平台数据概览 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-database"></i> 平台数据概览</h5>
+								</div>
+                    <div class="ibox-content">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <div class="text-center">
+                                    <h1 class="no-margins" style="color: #1ab394;">100,000+</h1>
+                                    <small>用户行为数据</small>
+									</div>
+								</div>
+                            <div class="col-sm-3">
+                                <div class="text-center">
+                                    <h1 class="no-margins" style="color: #1ab394;">30+</h1>
+                                    <small>覆盖城市</small>
+							</div>
+								</div>
+                            <div class="col-sm-3">
+                                <div class="text-center">
+                                    <h1 class="no-margins" style="color: #1ab394;">7</h1>
+                                    <small>数据分析维度</small>
+									</div>
+								</div>
+                            <div class="col-sm-3">
+                                <div class="text-center">
+                                    <h1 class="no-margins" style="color: #1ab394;">实时</h1>
+                                    <small>数据更新</small>
+							</div>
+								</div>
+									</div>
+								</div>
+							</div>
+								</div>
+									</div>
+
+        <!-- 快捷入口 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-rocket"></i> 快捷入口</h5>
+								</div>
+                    <div class="ibox-content">
+                        <a href="javascript:void(0)" class="quick-link" onclick="openTab('/freshdata/overview', '数据概览')">
+                            <i class="fa fa-dashboard"></i> 数据概览 - 查看整体数据统计
+                        </a>
+                        <a href="javascript:void(0)" class="quick-link" onclick="openTab('/system/user', '用户管理')">
+                            <i class="fa fa-users"></i> 用户管理 - 管理生鲜电商用户
+                        </a>
+                        <a href="javascript:void(0)" class="quick-link" onclick="openTab('/freshdata/consumption', '消费行为分析')">
+                            <i class="fa fa-shopping-cart"></i> 消费分析 - 分析用户消费行为
+                        </a>
+                        <a href="javascript:void(0)" class="quick-link" onclick="openTab('/freshdata/profile', '用户画像分析')">
+                            <i class="fa fa-user"></i> 用户画像 - 深度用户分析
+                        </a>
+							</div>
+								</div>
+									</div>
+            <div class="col-sm-6">
+                <div class="ibox">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-cogs"></i> 系统功能</h5>
+								</div>
+                    <div class="ibox-content">
+                        <ul class="list-group">
+                            <li class="list-group-item">
+                                <i class="fa fa-check text-navy"></i> 用户信息管理（增删改查）
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fa fa-check text-navy"></i> 多维度数据分析与可视化
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fa fa-check text-navy"></i> 用户行为追踪与画像构建
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fa fa-check text-navy"></i> 消费习惯洞察与预测
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fa fa-check text-navy"></i> 社交关系网络分析
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fa fa-check text-navy"></i> 数据报表导出功能
+                            </li>
+                        </ul>
+							</div>
+								</div>
+									</div>
+								</div>
+
+        <!-- 技术栈 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-code"></i> 技术栈</h5>
+							</div>
+                    <div class="ibox-content">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <h4>后端技术</h4>
+                                <ul>
+                                    <li><i class="fa fa-check-circle text-success"></i> Spring Boot - 核心框架</li>
+                                    <li><i class="fa fa-check-circle text-success"></i> MyBatis - 持久层框架</li>
+                                    <li><i class="fa fa-check-circle text-success"></i> Apache Shiro - 安全框架</li>
+                                    <li><i class="fa fa-check-circle text-success"></i> Druid - 数据库连接池</li>
+                                </ul>
+								</div>
+                            <div class="col-sm-6">
+                                <h4>前端技术</h4>
+                                <ul>
+                                    <li><i class="fa fa-check-circle text-success"></i> Thymeleaf - 模板引擎</li>
+                                    <li><i class="fa fa-check-circle text-success"></i> Bootstrap - UI框架</li>
+                                    <li><i class="fa fa-check-circle text-success"></i> ECharts - 数据可视化</li>
+                                    <li><i class="fa fa-check-circle text-success"></i> jQuery - JavaScript库</li>
+                                </ul>
+									</div>
+								</div>
+							</div>
+								</div>
+									</div>
+								</div>
+
+        <!-- 版权信息 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="text-center" style="padding: 20px 0;">
+                    <p style="color: #999;">Copyright © 2025 生鲜电商用户管理与数据分析平台 All Rights Reserved</p>
+                    <p style="color: #999;">Fresh E-commerce User Management & Data Analysis Platform</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script th:src="@{/js/jquery.min.js}"></script>
+    <script th:src="@{/js/bootstrap.min.js}"></script>
+    <script th:src="@{/ajax/libs/layer/layer.min.js}"></script>
+    <script th:src="@{/ruoyi/js/ry-ui.js?v=4.8.1}"></script>
+    <script th:src="@{/ruoyi/js/common.js?v=4.8.1}"></script>
+    <script th:inline="javascript">
+        var ctx = [[@{/}]];
+        
+        // 快捷入口点击处理函数
+        function openTab(url, title) {
+            try {
+                // 获取顶层窗口
+                var topWindow = $(window.parent.document);
+                var currentMainUrl = ctx + 'system/main';
+                
+                // 检查菜单标签是否已存在
+                var flag = true;
+                $('.menuTab', topWindow).each(function() {
+                    if ($(this).data('id') == url) {
+                        // 如果已存在，激活该标签
+                        if (!$(this).hasClass('active')) {
+                            $(this).addClass('active').siblings('.menuTab').removeClass('active');
+                            // 显示对应的iframe
+                            $('.mainContent .RuoYi_iframe', topWindow).each(function() {
+                                if ($(this).data('id') == url) {
+                                    $(this).show().siblings('.RuoYi_iframe').hide();
+                                    return false;
+                                }
+                            });
+                        }
+                        flag = false;
+                        return false;
+                    }
+                });
+                
+                // 如果标签不存在，创建新标签
+                if (flag) {
+                    var dataIndex = Math.floor(Math.random() * 100);
+                    var str = '<a href="javascript:;" class="active menuTab" data-id="' + url + '" data-panel="' + currentMainUrl + '">' + title + ' <i class="fa fa-times-circle"></i></a>';
+                    $('.menuTab', topWindow).removeClass('active');
+                    
+                    // 创建iframe
+                    var str1 = '<iframe class="RuoYi_iframe" name="iframe' + dataIndex + '" width="100%" height="100%" src="' + url + '" frameborder="0" data-id="' + url + '" data-panel="' + currentMainUrl + '" seamless></iframe>';
+                    $('.mainContent', topWindow).find('iframe.RuoYi_iframe').hide();
+                    $('.mainContent', topWindow).append(str1);
+                    
+                    // 添加加载提示
+                    if (window.parent.$.modal) {
+                        window.parent.$.modal.loading("数据加载中，请稍候...");
+                        $('.mainContent iframe:visible', topWindow).on('load', function() {
+                            window.parent.$.modal.closeLoading();
+                        });
+                    }
+                    
+                    // 添加标签
+                    $('.menuTabs .page-tabs-content', topWindow).append(str);
+                    
+                    // 滚动到当前标签
+                    var marginsLeft = 0;
+                    $('.menuTab', topWindow).each(function() {
+                        if ($(this).hasClass('active')) {
+                            return false;
+                        } else {
+                            marginsLeft += $(this).outerWidth(true);
+                        }
+                    });
+                    $('.page-tabs-content', topWindow).css("margin-left", -marginsLeft);
+                }
+            } catch(e) {
+                console.error('打开标签页失败:', e);
+                // 备用方案：直接跳转
+                window.location.href = url;
+            }
+        }
+    </script>
+</body>
+</html>

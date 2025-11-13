@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('用户行为分析')" />
+    <th:block th:include="include :: echarts-js" />
+    <style>
+        /* 数据分析页面美化 */
+        body.gray-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f0f7 100%);
+        }
+        
+        .analysis-decorations {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .analysis-deco {
+            position: absolute;
+            opacity: 0.06;
+            animation: analysisFloat 35s ease-in-out infinite;
+        }
+        
+        .analysis-deco-1 {
+            width: 120px;
+            top: 15%;
+            right: 8%;
+        }
+        
+        .analysis-deco-2 {
+            width: 100px;
+            bottom: 20%;
+            left: 5%;
+            animation-delay: 12s;
+        }
+        
+        @keyframes analysisFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(8deg); }
+        }
+        
+        .echarts { 
+            height: 400px;
+            position: relative;
+        }
+        
+        .echarts::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(26, 179, 148, 0.03) 0%, rgba(35, 198, 200, 0.02) 100%);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        
+        .behavior-tab { margin-bottom: 20px; }
+        
+        .ibox {
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .ibox:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .ibox-title {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 2px solid #1ab394;
+        }
+        
+        .ibox-title h5 i {
+            color: #1ab394;
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .analysis-decorations { display: none; }
+        }
+    </style>
+</head>
+<body class="gray-bg">
+    <div class="analysis-decorations">
+        <img th:src="@{/images/fresh/p3.png}" class="analysis-deco analysis-deco-1" alt="用户行为">
+        <img th:src="@{/images/fresh/p4.png}" class="analysis-deco analysis-deco-2" alt="行为分析">
+    </div>
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <!-- Tab导航 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-bar-chart"></i> 用户行为数据分析</h5>
+                    </div>
+                    <div class="ibox-content">
+                        <ul class="nav nav-tabs behavior-tab">
+                            <li class="active"><a data-toggle="tab" href="#loginTab"><i class="fa fa-sign-in"></i> 登录行为</a></li>
+                            <li><a data-toggle="tab" href="#browseTab"><i class="fa fa-eye"></i> 浏览行为</a></li>
+                            <li><a data-toggle="tab" href="#searchTab"><i class="fa fa-search"></i> 搜索行为</a></li>
+                        </ul>
+                        <div class="tab-content">
+                            <!-- 登录行为标签页 -->
+                            <div id="loginTab" class="tab-pane active">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="panel panel-primary">
+                                            <div class="panel-heading">
+                                                <i class="fa fa-calendar-check-o"></i> 登录天数分布
+                                            </div>
+                                            <div class="panel-body">
+                                                <div class="echarts" id="loginDaysChart"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="panel panel-info">
+                                            <div class="panel-heading">
+                                                <i class="fa fa-clock-o"></i> 登录时长分布
+                                            </div>
+                                            <div class="panel-body">
+                                                <div class="echarts" id="loginTimeChart"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="panel panel-success">
+                                            <div class="panel-heading">
+                                                <i class="fa fa-line-chart"></i> 启动次数与登录天数关系
+                                            </div>
+                                            <div class="panel-body">
+                                                <div class="echarts" id="launchLoginRelation"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 浏览行为标签页 -->
+                            <div id="browseTab" class="tab-pane">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="panel panel-warning">
+                                            <div class="panel-heading">
+                                                <i class="fa fa-shopping-bag"></i> 访问页面分布
+                                            </div>
+                                            <div class="panel-body">
+                                                <div class="echarts" id="visitPagesChart"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="panel panel-danger">
+                                            <div class="panel-heading">
+                                                <i class="fa fa-info-circle"></i> 商品详情页访问
+                                            </div>
+                                            <div class="panel-body">
+                                                <div class="echarts" id="detailPageChart"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="panel panel-primary">
+                                            <div class="panel-heading">
+                                                <i class="fa fa-area-chart"></i> 用户浏览深度分析
+                                            </div>
+                                            <div class="panel-body">
+                                                <div class="echarts" id="browseDepthChart"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 搜索行为标签页 -->
+                            <div id="searchTab" class="tab-pane">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="panel panel-success">
+                                            <div class="panel-heading">
+                                                <i class="fa fa-search-plus"></i> 搜索次数分布
+                                            </div>
+                                            <div class="panel-body">
+                                                <div class="echarts" id="searchCountChart"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="panel panel-info">
+                                            <div class="panel-heading">
+                                                <i class="fa fa-check-circle"></i> 搜索完成率
+                                            </div>
+                                            <div class="panel-body">
+                                                <div class="echarts" id="searchFinishChart"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script th:inline="none">
+        $(function() {
+            loadLoginBehavior();
+            
+            // Tab切换时加载对应数据
+            $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+                var target = $(e.target).attr("href");
+                if (target === "#browseTab") {
+                    loadBrowseBehavior();
+                } else if (target === "#searchTab") {
+                    loadSearchBehavior();
+                }
+            });
+        });
+
+        function loadLoginBehavior() {
+            $.ajax({
+                url: ctx + "freshdata/analysis/loginBehavior",
+                type: "get",
+                dataType: "json",
+                success: function(result) {
+                    if (result.code == 0 && result.data) {
+                        renderLoginCharts(result.data);
+                    } else {
+                        $.modal.msgError("登录行为数据加载失败");
+                    }
+                }
+            });
+        }
+
+        function loadBrowseBehavior() {
+            $.ajax({
+                url: ctx + "freshdata/analysis/browseBehavior",
+                type: "get",
+                dataType: "json",
+                success: function(result) {
+                    if (result.code == 0 && result.data) {
+                        renderBrowseCharts(result.data);
+                    } else {
+                        $.modal.msgError("浏览行为数据加载失败");
+                    }
+                }
+            });
+        }
+
+        function loadSearchBehavior() {
+            $.ajax({
+                url: ctx + "freshdata/analysis/searchBehavior",
+                type: "get",
+                dataType: "json",
+                success: function(result) {
+                    if (result.code == 0 && result.data) {
+                        renderSearchCharts(result.data);
+                    } else {
+                        $.modal.msgError("搜索行为数据加载失败");
+                    }
+                }
+            });
+        }
+
+        function renderLoginCharts(data) {
+            // 1. 登录天数分布
+            var loginDaysChart = echarts.init(document.getElementById("loginDaysChart"));
+            var loginDaysOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.loginDaysRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '用户数',
+                    type: 'bar',
+                    data: data.loginDaysCounts || [],
+                    itemStyle: { color: '#1ab394' }
+                }]
+            };
+            loginDaysChart.setOption(loginDaysOption);
+            $(window).resize(loginDaysChart.resize);
+
+            // 2. 登录时长分布
+            var loginTimeChart = echarts.init(document.getElementById("loginTimeChart"));
+            var loginTimeOption = {
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', right: 10, top: 'center' },
+                series: [{
+                    name: '登录时长',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    data: data.loginTimeGroups || [],
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }
+                }]
+            };
+            loginTimeChart.setOption(loginTimeOption);
+            $(window).resize(loginTimeChart.resize);
+
+            // 3. 启动次数与登录天数关系散点图
+            var launchChart = echarts.init(document.getElementById("launchLoginRelation"));
+            var launchOption = {
+                tooltip: { trigger: 'item', formatter: '登录天数: {value[0]}<br/>启动次数: {value[1]}' },
+                grid: { left: '3%', right: '7%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'value', name: '登录天数', splitLine: { show: false } },
+                yAxis: { type: 'value', name: '启动次数', splitLine: { lineStyle: { type: 'dashed' } } },
+                series: [{
+                    name: '用户行为',
+                    type: 'scatter',
+                    symbolSize: 8,
+                    data: data.launchLoginData || [],
+                    itemStyle: { color: '#5cb85c' }
+                }]
+            };
+            launchChart.setOption(launchOption);
+            $(window).resize(launchChart.resize);
+        }
+
+        function renderBrowseCharts(data) {
+            // 1. 访问页面分布雷达图
+            var visitChart = echarts.init(document.getElementById("visitPagesChart"));
+            var visitOption = {
+                tooltip: {},
+                radar: {
+                    indicator: [
+                        { name: '首页', max: 100 },
+                        { name: '商品页', max: 100 },
+                        { name: '购物车', max: 100 },
+                        { name: '个人中心', max: 100 },
+                        { name: '收藏页', max: 100 }
+                    ]
+                },
+                series: [{
+                    name: '页面访问',
+                    type: 'radar',
+                    data: [{
+                        value: data.pageVisits || [0, 0, 0, 0, 0],
+                        name: '访问量',
+                        areaStyle: { color: 'rgba(240, 173, 78, 0.3)' }
+                    }]
+                }]
+            };
+            visitChart.setOption(visitOption);
+            $(window).resize(visitChart.resize);
+
+            // 2. 商品详情页访问分布
+            var detailChart = echarts.init(document.getElementById("detailPageChart"));
+            var detailOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.detailRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '访问次数',
+                    type: 'bar',
+                    data: data.detailCounts || [],
+                    itemStyle: { color: '#d9534f' }
+                }]
+            };
+            detailChart.setOption(detailOption);
+            $(window).resize(detailChart.resize);
+
+            // 3. 浏览深度分析漏斗图
+            var depthChart = echarts.init(document.getElementById("browseDepthChart"));
+            var depthOption = {
+                title: { text: '用户浏览转化漏斗', left: 'center' },
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b} : {c}%' },
+                series: [{
+                    name: '浏览深度',
+                    type: 'funnel',
+                    left: '10%',
+                    width: '80%',
+                    label: { position: 'inside', formatter: '{b}: {c}%' },
+                    data: data.browseFunnel || []
+                }]
+            };
+            depthChart.setOption(depthOption);
+            $(window).resize(depthChart.resize);
+        }
+
+        function renderSearchCharts(data) {
+            // 1. 搜索次数分布
+            var searchChart = echarts.init(document.getElementById("searchCountChart"));
+            var searchOption = {
+                tooltip: { trigger: 'axis' },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.searchRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '搜索次数',
+                    type: 'line',
+                    data: data.searchCounts || [],
+                    smooth: true,
+                    areaStyle: { color: 'rgba(91, 192, 222, 0.3)' },
+                    itemStyle: { color: '#5bc0de' }
+                }]
+            };
+            searchChart.setOption(searchOption);
+            $(window).resize(searchChart.resize);
+
+            // 2. 搜索完成率仪表盘
+            var finishChart = echarts.init(document.getElementById("searchFinishChart"));
+            var finishOption = {
+                tooltip: { formatter: '{a} <br/>{b} : {c}%' },
+                series: [{
+                    name: '搜索完成率',
+                    type: 'gauge',
+                    detail: { formatter: '{value}%' },
+                    data: [{ value: data.finishRate || 0, name: '完成率' }],
+                    axisLine: {
+                        lineStyle: {
+                            width: 20,
+                            color: [[0.3, '#d9534f'], [0.7, '#f0ad4e'], [1, '#5cb85c']]
+                        }
+                    }
+                }]
+            };
+            finishChart.setOption(finishOption);
+            $(window).resize(finishChart.resize);
+        }
+    </script>
+</body>
+</html>

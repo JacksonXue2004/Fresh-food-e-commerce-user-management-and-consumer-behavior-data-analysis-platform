@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('用户画像分析')" />
+    <th:block th:include="include :: echarts-js" />
+    <style>
+        /* 统一的数据分析页面样式 */
+        body.gray-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f0f7 100%);
+        }
+        
+        .analysis-decorations {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .analysis-deco {
+            position: absolute;
+            opacity: 0.06;
+            animation: analysisFloat 35s ease-in-out infinite;
+        }
+        
+        .analysis-deco-1 {
+            width: 120px;
+            top: 15%;
+            right: 8%;
+        }
+        
+        .analysis-deco-2 {
+            width: 100px;
+            bottom: 20%;
+            left: 5%;
+            animation-delay: 12s;
+        }
+        
+        @keyframes analysisFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(8deg); }
+        }
+        
+        .echarts { 
+            height: 400px;
+            position: relative;
+        }
+        
+        .echarts::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(26, 179, 148, 0.03) 0%, rgba(35, 198, 200, 0.02) 100%);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        
+        .profile-header { 
+            background: linear-gradient(135deg, #1ab394 0%, #27ae60 100%); 
+            color: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(26, 179, 148, 0.3);
+            animation: slideInDown 0.6s ease-out;
+        }
+        
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .profile-header h3 { 
+            margin: 0; 
+            font-weight: 300;
+        }
+        
+        .ibox {
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .ibox:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .ibox-title {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 2px solid #1ab394;
+        }
+        
+        .ibox-title h5 i {
+            color: #1ab394;
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .analysis-decorations { display: none; }
+        }
+    </style>
+</head>
+<body class="gray-bg">
+    <div class="analysis-decorations">
+        <img th:src="@{/images/fresh/p7.png}" class="analysis-deco analysis-deco-1" alt="用户画像">
+        <img th:src="@{/images/fresh/p8.png}" class="analysis-deco analysis-deco-2" alt="画像分析">
+    </div>
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <!-- 用户画像头部 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="profile-header">
+                    <h3><i class="fa fa-user-circle-o"></i> 生鲜电商用户全景画像</h3>
+                    <p style="margin-top: 10px; opacity: 0.9;">基于 <span id="totalUsers">-</span> 位用户的行为数据分析</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 地域与年龄分布 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-map-marker"></i> 用户地域分布分析</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="cityDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-birthday-cake"></i> 用户账户年龄分布分析</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="ageDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设备与平台分布 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-mobile"></i> 用户设备型号分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="deviceDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-desktop"></i> 用户访问平台分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="platformDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户综合画像 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-user"></i> 用户综合特征雷达图</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="userProfileRadarChart" style="height: 500px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户活跃度热力图 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-fire"></i> 用户活跃度分布热力图</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="activityHeatmapChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户分类象限图 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-th"></i> 用户价值分类（活跃度 vs 消费力）</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="userSegmentationChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script th:inline="javascript">
+        $(function() {
+            loadUserProfileData();
+        });
+
+        function loadUserProfileData() {
+            $.ajax({
+                url: ctx + "freshdata/analysis/userProfile",
+                type: "get",
+                dataType: "json",
+                success: function(result) {
+                    if (result.code == 0 && result.data) {
+                        $("#totalUsers").text(result.data.totalUsers || '0');
+                        renderProfileCharts(result.data);
+                    } else {
+                        $.modal.msgError("用户画像数据加载失败");
+                    }
+                },
+                error: function() {
+                    $.modal.msgError("服务器连接失败");
+                }
+            });
+        }
+
+        function renderProfileCharts(data) {
+            // 1. 城市分布柱状图（TOP 20）
+            var cityChart = echarts.init(document.getElementById("cityDistributionChart"));
+            var cityOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'value', name: '用户数' },
+                yAxis: {
+                    type: 'category',
+                    data: (data.topCities || []).map(item => item.name),
+                    axisLabel: { interval: 0 }
+                },
+                series: [{
+                    name: '用户数量',
+                    type: 'bar',
+                    data: (data.topCities || []).map(item => item.value),
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                            { offset: 0, color: '#83bff6' },
+                            { offset: 0.5, color: '#188df0' },
+                            { offset: 1, color: '#188df0' }
+                        ])
+                    }
+                }]
+            };
+            cityChart.setOption(cityOption);
+            $(window).resize(cityChart.resize);
+
+            // 2. 年龄分布柱状图
+            var ageChart = echarts.init(document.getElementById("ageDistributionChart"));
+            var ageOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.ageRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '用户数',
+                    type: 'bar',
+                    data: data.ageCounts || [],
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#f093fb' },
+                            { offset: 0.5, color: '#f5576c' },
+                            { offset: 1, color: '#f5576c' }
+                        ])
+                    }
+                }]
+            };
+            ageChart.setOption(ageOption);
+            $(window).resize(ageChart.resize);
+
+            // 3. 设备分布饼图
+            var deviceChart = echarts.init(document.getElementById("deviceDistributionChart"));
+            var deviceOption = {
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', right: 10, top: 'center' },
+                series: [{
+                    name: '设备型号',
+                    type: 'pie',
+                    radius: '70%',
+                    data: data.deviceGroups || [],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+            deviceChart.setOption(deviceOption);
+            $(window).resize(deviceChart.resize);
+
+            // 4. 平台分布环形图
+            var platformChart = echarts.init(document.getElementById("platformDistributionChart"));
+            var platformOption = {
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', right: 10, top: 'center' },
+                series: [{
+                    name: '访问平台',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    data: data.platformGroups || [],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+            platformChart.setOption(platformOption);
+            $(window).resize(platformChart.resize);
+
+            // 5. 用户综合画像雷达图
+            var radarChart = echarts.init(document.getElementById("userProfileRadarChart"));
+            var radarOption = {
+                title: { text: '用户综合特征分析', left: 'center' },
+                tooltip: {},
+                legend: { data: ['平均用户画像'], bottom: 10 },
+                radar: {
+                    indicator: [
+                        { name: '活跃度\n(登录天数)', max: 100 },
+                        { name: '消费力\n(首单金额)', max: 100 },
+                        { name: '互动性\n(社交行为)', max: 100 },
+                        { name: '粘性\n(访问频次)', max: 100 },
+                        { name: '探索性\n(浏览深度)', max: 100 },
+                        { name: '忠诚度\n(使用时长)', max: 100 }
+                    ],
+                    splitNumber: 5,
+                    name: {
+                        textStyle: { color: '#333' }
+                    },
+                    splitArea: {
+                        areaStyle: {
+                            color: ['rgba(26, 179, 148, 0.1)', 'rgba(26, 179, 148, 0.2)',
+                                    'rgba(26, 179, 148, 0.3)', 'rgba(26, 179, 148, 0.4)',
+                                    'rgba(26, 179, 148, 0.5)', 'rgba(26, 179, 148, 0.6)']
+                        }
+                    }
+                },
+                series: [{
+                    name: '用户画像',
+                    type: 'radar',
+                    data: [{
+                        value: data.userRadar || [70, 60, 50, 80, 75, 65],
+                        name: '平均用户画像',
+                        areaStyle: { color: 'rgba(26, 179, 148, 0.4)' },
+                        lineStyle: { color: '#1ab394', width: 2 }
+                    }]
+                }]
+            };
+            radarChart.setOption(radarOption);
+            $(window).resize(radarChart.resize);
+
+            // 6. 活跃度热力图
+            var heatmapChart = echarts.init(document.getElementById("activityHeatmapChart"));
+            var heatmapOption = {
+                title: { text: '用户活跃时段分布', left: 'center' },
+                tooltip: { position: 'top' },
+                grid: { height: '50%', top: '15%' },
+                xAxis: {
+                    type: 'category',
+                    data: data.activityHours || ['0时', '3时', '6时', '9时', '12时', '15时', '18时', '21时'],
+                    splitArea: { show: true }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    splitArea: { show: true }
+                },
+                visualMap: {
+                    min: 0,
+                    max: 100,
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '5%',
+                    inRange: { color: ['#f0f9ff', '#0891b2', '#164e63'] }
+                },
+                series: [{
+                    name: '活跃度',
+                    type: 'heatmap',
+                    data: data.activityHeatmap || [],
+                    label: { show: false },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+            heatmapChart.setOption(heatmapOption);
+            $(window).resize(heatmapChart.resize);
+
+            // 7. 用户分类象限图
+            var segmentChart = echarts.init(document.getElementById("userSegmentationChart"));
+            var segmentOption = {
+                title: { text: '用户价值矩阵分析', left: 'center' },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        return '活跃度: ' + params.value[0] + '<br/>消费力: ' + params.value[1] + '<br/>用户数: ' + params.value[2];
+                    }
+                },
+                grid: { left: '5%', right: '5%', bottom: '10%', containLabel: true },
+                xAxis: {
+                    type: 'value',
+                    name: '用户活跃度',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    splitLine: { lineStyle: { type: 'dashed' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '用户消费力',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    splitLine: { lineStyle: { type: 'dashed' } }
+                },
+                series: [{
+                    name: '用户分类',
+                    type: 'scatter',
+                    symbolSize: function (val) {
+                        return Math.min(Math.sqrt(val[2]) * 3, 50); // 气泡大小：开平方*3，最大50
+                    },
+                    data: data.userSegmentation || [],
+                    itemStyle: {
+                        opacity: 0.6,
+                        color: function(params) {
+                            var x = params.value[0];
+                            var y = params.value[1];
+                            if (x >= 50 && y >= 50) return '#5cb85c'; // 高价值用户
+                            if (x >= 50 && y < 50) return '#f0ad4e'; // 活跃用户
+                            if (x < 50 && y >= 50) return '#5bc0de'; // 高消费用户
+                            return '#d9534f'; // 潜力用户
+                        }
+                    },
+                    markLine: {
+                        lineStyle: { type: 'solid', color: '#999', width: 1 },
+                        data: [
+                            { xAxis: 50 },
+                            { yAxis: 50 }
+                        ]
+                    }
+                }],
+                graphic: [
+                    { type: 'text', left: '25%', top: '20%', style: { text: '活跃低消费', fill: '#f0ad4e', fontSize: 14 } },
+                    { type: 'text', left: '65%', top: '20%', style: { text: '高价值用户', fill: '#5cb85c', fontSize: 14, fontWeight: 'bold' } },
+                    { type: 'text', left: '25%', top: '75%', style: { text: '潜力用户', fill: '#d9534f', fontSize: 14 } },
+                    { type: 'text', left: '65%', top: '75%', style: { text: '高消费低活跃', fill: '#5bc0de', fontSize: 14 } }
+                ]
+            };
+            segmentChart.setOption(segmentOption);
+            $(window).resize(segmentChart.resize);
+        }
+    </script>
+</body>
+</html>
+
+

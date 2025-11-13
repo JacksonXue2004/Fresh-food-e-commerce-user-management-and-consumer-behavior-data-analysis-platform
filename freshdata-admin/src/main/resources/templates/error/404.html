@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生鲜电商平台 - 404</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
+    <link th:href="@{/css/font-awesome.min.css}" rel="stylesheet"/>
+    <link th:href="@{/css/animate.min.css}" rel="stylesheet"/>
+    <link th:href="@{/css/style.min.css}" rel="stylesheet"/>
+    <style>
+        body.gray-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .middle-box {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            animation: bounceIn 0.8s ease-out;
+        }
+        
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+        
+        .middle-box h1 {
+            font-size: 120px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1ab394 0%, #27ae60 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .middle-box h3 {
+            color: #333;
+            margin: 20px 0;
+            font-weight: 700;
+        }
+        
+        .error-desc {
+            color: #666;
+            line-height: 1.8;
+            margin-top: 20px;
+        }
+        
+        .error-icon {
+            font-size: 80px;
+            color: #1ab394;
+            margin-bottom: 20px;
+            animation: swing 2s ease-in-out infinite;
+        }
+        
+        @keyframes swing {
+            0%, 100% { transform: rotate(0deg); }
+            20% { transform: rotate(15deg); }
+            40% { transform: rotate(-10deg); }
+            60% { transform: rotate(5deg); }
+            80% { transform: rotate(-5deg); }
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1ab394 0%, #27ae60 100%);
+            border: none;
+            padding: 12px 40px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(26, 179, 148, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(26, 179, 148, 0.4);
+        }
+    </style>
+</head>
+<body class="gray-bg">
+    <div class="middle-box text-center animated fadeInDown">
+        <div class="error-icon">
+            <i class="fa fa-search"></i>
+        </div>
+        <h1>404</h1>
+        <h3 class="font-bold">页面走丢了...</h3>
+        <div class="error-desc">
+            <p style="margin-bottom: 25px;">抱歉，您访问的页面不存在。可能已经被移除、重命名或暂时不可用。</p>
+            <a href="javascript:index()" class="btn btn-primary">
+                <i class="fa fa-home"></i> 返回首页
+            </a>
+        </div>
+    </div>
+    <script th:inline="javascript">
+      var ctx = [[@{/}]];
+      function index() {
+    	  window.top.location = ctx + "index";
+      }
+    </script>
+</body>
+</html>

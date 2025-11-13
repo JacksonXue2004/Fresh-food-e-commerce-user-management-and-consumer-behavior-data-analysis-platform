@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('消费行为分析')" />
+    <th:block th:include="include :: echarts-js" />
+    <style>
+        /* 统一的数据分析页面样式 */
+        body.gray-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f0f7 100%);
+        }
+        
+        .analysis-decorations {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .analysis-deco {
+            position: absolute;
+            opacity: 0.06;
+            animation: analysisFloat 35s ease-in-out infinite;
+        }
+        
+        .analysis-deco-1 {
+            width: 120px;
+            top: 15%;
+            right: 8%;
+        }
+        
+        .analysis-deco-2 {
+            width: 100px;
+            bottom: 20%;
+            left: 5%;
+            animation-delay: 12s;
+        }
+        
+        @keyframes analysisFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(8deg); }
+        }
+        
+        .echarts { 
+            height: 380px;
+            position: relative;
+        }
+        
+        .echarts::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(26, 179, 148, 0.03) 0%, rgba(35, 198, 200, 0.02) 100%);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        
+        .stat-box { 
+            text-align: center; 
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stat-box .num { 
+            font-size: 36px; 
+            font-weight: bold;
+            background: linear-gradient(135deg, #1ab394 0%, #23c6c8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: numberPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes numberPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+        
+        .stat-box .label { 
+            color: #676a6c; 
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        
+        .ibox {
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .ibox:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .ibox-title {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 2px solid #1ab394;
+        }
+        
+        .ibox-title h5 i {
+            color: #1ab394;
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .analysis-decorations { display: none; }
+        }
+    </style>
+</head>
+<body class="gray-bg">
+    <div class="analysis-decorations">
+        <img th:src="@{/images/fresh/p5.png}" class="analysis-deco analysis-deco-1" alt="消费分析">
+        <img th:src="@{/images/fresh/p6.png}" class="analysis-deco analysis-deco-2" alt="消费数据">
+    </div>
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <!-- 消费概况卡片 -->
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content stat-box">
+                        <div class="num" id="avgOrderAmount">-</div>
+                        <div class="label"><i class="fa fa-shopping-cart"></i> 平均订单金额</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content stat-box">
+                        <div class="num" id="avgCartItems">-</div>
+                        <div class="label"><i class="fa fa-cart-plus"></i> 平均购物车商品</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content stat-box">
+                        <div class="num" id="couponUsageRate">-</div>
+                        <div class="label"><i class="fa fa-ticket"></i> 优惠券使用率</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content stat-box">
+                        <div class="num" id="cartConversionRate">-</div>
+                        <div class="label"><i class="fa fa-exchange"></i> 购物车转化率</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 消费金额分析 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-money"></i> 用户首单金额分布分析</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="orderAmountChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 购物车与优惠券分析 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-shopping-cart"></i> 购物车使用行为分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="cartBehaviorChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-tags"></i> 优惠券使用分析</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="couponChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 购买转化漏斗 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-filter"></i> 用户购买转化漏斗</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="conversionFunnelChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-pie-chart"></i> 用户购买频次分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="purchaseFrequencyChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 点击购买行为分析 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-mouse-pointer"></i> 点击购买行为与实际消费关系</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="clickBuyRelationChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script th:inline="javascript">
+        $(function() {
+            loadConsumptionData();
+        });
+
+        function loadConsumptionData() {
+            // 加载消费行为数据
+            $.ajax({
+                url: ctx + "freshdata/analysis/consumptionBehavior",
+                type: "get",
+                dataType: "json",
+                success: function(result) {
+                    if (result.code == 0 && result.data) {
+                        updateStatBoxes(result.data);
+                        renderConsumptionCharts(result.data);
+                    } else {
+                        $.modal.msgError("消费行为数据加载失败");
+                    }
+                },
+                error: function() {
+                    $.modal.msgError("服务器连接失败");
+                }
+            });
+        }
+
+        function updateStatBoxes(data) {
+            $("#avgOrderAmount").text('¥' + (data.avgOrderAmount || '0'));
+            $("#avgCartItems").text((data.avgCartItems || '0') + ' 件');
+            $("#couponUsageRate").text((data.couponUsageRate || '0') + '%');
+            $("#cartConversionRate").text((data.cartConversionRate || '0') + '%');
+        }
+
+        function renderConsumptionCharts(data) {
+            // 1. 订单金额分布柱状图
+            var orderChart = echarts.init(document.getElementById("orderAmountChart"));
+            var orderOption = {
+                title: { text: '用户首次订单金额区间分布', left: 'center' },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: data.amountRanges || [],
+                    axisLabel: { interval: 0, rotate: 30 }
+                },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '用户数',
+                    type: 'bar',
+                    data: data.amountCounts || [],
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#83bff6' },
+                            { offset: 0.5, color: '#188df0' },
+                            { offset: 1, color: '#188df0' }
+                        ])
+                    },
+                    barWidth: '60%'
+                }]
+            };
+            orderChart.setOption(orderOption);
+            $(window).resize(orderChart.resize);
+
+            // 2. 购物车行为分布饼图
+            var cartChart = echarts.init(document.getElementById("cartBehaviorChart"));
+            var cartOption = {
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c}次 ({d}%)' },
+                legend: { orient: 'vertical', left: 'left' },
+                series: [{
+                    name: '购物车操作',
+                    type: 'pie',
+                    radius: '70%',
+                    data: data.cartBehavior || [],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+            cartChart.setOption(cartOption);
+            $(window).resize(cartChart.resize);
+
+            // 3. 优惠券使用分布柱状图
+            var couponChart = echarts.init(document.getElementById("couponChart"));
+            var couponOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.couponRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '使用次数',
+                    type: 'bar',
+                    data: data.couponCounts || [],
+                    itemStyle: { color: '#f0ad4e' }
+                }]
+            };
+            couponChart.setOption(couponOption);
+            $(window).resize(couponChart.resize);
+
+            // 4. 购买转化漏斗
+            var funnelChart = echarts.init(document.getElementById("conversionFunnelChart"));
+            var funnelOption = {
+                title: { text: '从浏览到购买的转化路径', left: 'center' },
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b} : {c}' },
+                series: [{
+                    name: '转化阶段',
+                    type: 'funnel',
+                    left: '10%',
+                    width: '80%',
+                    label: { position: 'inside' },
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    data: data.conversionFunnel || [
+                        {value: 100, name: '访问商品'},
+                        {value: 80, name: '查看详情'},
+                        {value: 60, name: '加入购物车'},
+                        {value: 40, name: '领取优惠券'},
+                        {value: 20, name: '完成购买'}
+                    ]
+                }]
+            };
+            funnelChart.setOption(funnelOption);
+            $(window).resize(funnelChart.resize);
+
+            // 5. 购买频次分布环形图
+            var frequencyChart = echarts.init(document.getElementById("purchaseFrequencyChart"));
+            var frequencyOption = {
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', right: 10, top: 'center' },
+                series: [{
+                    name: '购买频次',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: { show: false, position: 'center' },
+                    emphasis: {
+                        label: { show: true, fontSize: '20', fontWeight: 'bold' }
+                    },
+                    labelLine: { show: false },
+                    data: data.purchaseFrequency || []
+                }]
+            };
+            frequencyChart.setOption(frequencyOption);
+            $(window).resize(frequencyChart.resize);
+
+            // 6. 点击购买关系散点图
+            var clickBuyChart = echarts.init(document.getElementById("clickBuyRelationChart"));
+            var clickBuyOption = {
+                title: { text: '点击购买次数与实际消费的关系', left: 'center' },
+                tooltip: { trigger: 'item', formatter: '点击次数: {value[0]}<br/>消费金额: ¥{value[1]}' },
+                grid: { left: '3%', right: '7%', bottom: '7%', containLabel: true },
+                xAxis: {
+                    type: 'value',
+                    name: '点击购买次数',
+                    splitLine: { lineStyle: { type: 'dashed' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '首单金额',
+                    splitLine: { lineStyle: { type: 'dashed' } }
+                },
+                series: [{
+                    name: '点击-消费关系',
+                    type: 'scatter',
+                    symbolSize: 10,
+                    data: data.clickBuyRelation || [],
+                    itemStyle: { color: '#d9534f', opacity: 0.6 }
+                }]
+            };
+            clickBuyChart.setOption(clickBuyOption);
+            $(window).resize(clickBuyChart.resize);
+        }
+    </script>
+</body>
+</html>
+
+

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('数据概览')" />
+    <th:block th:include="include :: echarts-js" />
+    <style>
+        /* 数据分析页面装饰 */
+        body.gray-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f0f7 100%);
+            position: relative;
+        }
+        
+        /* 页面装饰图片 */
+        .analysis-decorations {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .analysis-deco {
+            position: absolute;
+            opacity: 0.06;
+            animation: analysisFloat 35s ease-in-out infinite;
+        }
+        
+        .analysis-deco-1 {
+            width: 120px;
+            top: 15%;
+            right: 8%;
+            animation-delay: 0s;
+        }
+        
+        .analysis-deco-2 {
+            width: 100px;
+            bottom: 20%;
+            left: 5%;
+            animation-delay: 12s;
+        }
+        
+        @keyframes analysisFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(8deg); }
+        }
+        
+        /* 图表容器美化 */
+        .echarts { 
+            height: 350px;
+            position: relative;
+        }
+        
+        .echarts::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(26, 179, 148, 0.03) 0%, rgba(35, 198, 200, 0.02) 100%);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        
+        /* 统计卡片美化 */
+        .stat-card { 
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .stat-card.primary { 
+            border-color: #1ab394;
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdf9 100%);
+        }
+        
+        .stat-card.info { 
+            border-color: #23c6c8;
+            background: linear-gradient(135deg, #ffffff 0%, #f0fcfd 100%);
+        }
+        
+        .stat-card.warning { 
+            border-color: #f8ac59;
+            background: linear-gradient(135deg, #ffffff 0%, #fffcf5 100%);
+        }
+        
+        .stat-card.danger { 
+            border-color: #ed5565;
+            background: linear-gradient(135deg, #ffffff 0%, #fff5f7 100%);
+        }
+        
+        .stat-num { 
+            font-size: 32px; 
+            font-weight: bold; 
+            margin: 10px 0;
+            background: linear-gradient(135deg, #1ab394 0%, #23c6c8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: numberPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes numberPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+        
+        .stat-label { 
+            color: #676a6c; 
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .stat-label i {
+            margin-right: 8px;
+            color: #1ab394;
+        }
+        
+        /* ibox 增强 */
+        .ibox {
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .ibox:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .ibox-title {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 2px solid #1ab394;
+        }
+        
+        .ibox-title h5 i {
+            color: #1ab394;
+            margin-right: 8px;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .analysis-decorations {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="gray-bg">
+    <!-- 背景装饰图片 -->
+    <div class="analysis-decorations">
+        <img th:src="@{/images/fresh/p1.png}" class="analysis-deco analysis-deco-1" alt="生鲜数据">
+        <img th:src="@{/images/fresh/p2.png}" class="analysis-deco analysis-deco-2" alt="数据分析">
+    </div>
+    
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <!-- 关键指标卡片 -->
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins stat-card primary">
+                    <div class="ibox-content">
+                        <div class="stat-label"><i class="fa fa-users"></i> 总用户数</div>
+                        <div class="stat-num" id="totalUsers">-</div>
+                        <div class="stat-percent">
+                            <i class="fa fa-level-up"></i> <span id="userGrowth">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins stat-card info">
+                    <div class="ibox-content">
+                        <div class="stat-label"><i class="fa fa-shopping-cart"></i> 平均首单金额</div>
+                        <div class="stat-num" id="avgFirstPrice">-</div>
+                        <div class="stat-percent">
+                            <span class="text-info">¥</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins stat-card warning">
+                    <div class="ibox-content">
+                        <div class="stat-label"><i class="fa fa-calendar"></i> 平均账户年龄</div>
+                        <div class="stat-num" id="avgAge">-</div>
+                        <div class="stat-percent">
+                            <span class="text-muted">月</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins stat-card danger">
+                    <div class="ibox-content">
+                        <div class="stat-label"><i class="fa fa-line-chart"></i> 平均登录天数</div>
+                        <div class="stat-num" id="avgLoginDays">-</div>
+                        <div class="stat-percent">
+                            <span class="text-muted">天</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-bar-chart-o"></i> 用户首单金额分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="priceDistribution"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-users"></i> 用户账户年龄分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="ageDistribution"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-map-marker"></i> 用户城市分布 TOP10</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="cityDistribution"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-calendar-check-o"></i> 用户登录行为分析</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="loginBehavior"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-mobile"></i> 用户设备分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="deviceDistribution"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script th:inline="javascript">
+        $(function() {
+            // 加载数据概览
+            loadOverview();
+        });
+
+        function loadOverview() {
+            console.log("开始加载数据概览...");
+            $.ajax({
+                url: ctx + "freshdata/analysis/overview",
+                type: "get",
+                dataType: "json",
+                success: function(result) {
+                    console.log("收到响应:", result);
+                    console.log("result.code:", result.code);
+                    console.log("result.data:", result.data);
+                    if (result.code == 0 && result.data) {
+                        console.log("数据验证通过，开始渲染...");
+                        updateStatCards(result.data);
+                        renderCharts(result.data);
+                        console.log("渲染完成！");
+                    } else {
+                        console.error("数据加载失败 - code:", result.code, "data:", result.data);
+                        $.modal.msgError("数据加载失败");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX请求失败:", status, error);
+                    console.error("响应状态:", xhr.status);
+                    console.error("响应文本:", xhr.responseText);
+                    $.modal.msgError("服务器连接失败");
+                }
+            });
+        }
+
+        function updateStatCards(data) {
+            $("#totalUsers").text(data.totalUsers || '0');
+            $("#avgFirstPrice").text('¥' + (data.avgFirstPrice || '0'));
+            $("#avgAge").text((data.avgAge || '0') + ' 月');
+            $("#avgLoginDays").text((data.avgLoginDays || '0') + ' 天');
+            $("#userGrowth").text("数据统计中");
+        }
+
+        function renderCharts(data) {
+            console.log("renderCharts 被调用，data:", data);
+            try {
+                // 1. 首单金额分布柱状图
+                console.log("初始化首单金额分布图表...");
+                var priceChart = echarts.init(document.getElementById("priceDistribution"));
+                console.log("priceChart初始化成功:", priceChart);
+            var priceOption = {
+                title: { text: '用户首单金额分布情况', left: 'center' },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: data.priceRanges || [],
+                    axisLabel: { interval: 0, rotate: 30 }
+                },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '用户数',
+                    type: 'bar',
+                    data: data.priceCounts || [],
+                    itemStyle: { color: '#1ab394' },
+                    barWidth: '60%'
+                }]
+            };
+            priceChart.setOption(priceOption);
+            $(window).resize(priceChart.resize);
+
+            // 2. 年龄分布饼图
+            var ageChart = echarts.init(document.getElementById("ageDistribution"));
+            var ageOption = {
+                title: { text: '用户账户年龄分布', left: 'center' },
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', right: 10, top: 'center' },
+                series: [{
+                    name: '年龄段',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: { show: true, formatter: '{b}: {d}%' },
+                    data: data.ageGroups || []
+                }]
+            };
+            ageChart.setOption(ageOption);
+            $(window).resize(ageChart.resize);
+
+            // 3. 城市分布横向柱状图
+            var cityChart = echarts.init(document.getElementById("cityDistribution"));
+            var cityOption = {
+                title: { text: '用户城市数量 TOP10', left: 'center' },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'value', name: '用户数' },
+                yAxis: {
+                    type: 'category',
+                    data: (data.topCities || []).map(item => item.name),
+                    axisLabel: { interval: 0 }
+                },
+                series: [{
+                    name: '用户数',
+                    type: 'bar',
+                    data: (data.topCities || []).map(item => item.value),
+                    itemStyle: { color: '#23c6c8' }
+                }]
+            };
+            cityChart.setOption(cityOption);
+            $(window).resize(cityChart.resize);
+
+            // 4. 登录行为雷达图
+            var loginChart = echarts.init(document.getElementById("loginBehavior"));
+            var loginOption = {
+                title: { text: '用户活跃度分析', left: 'center' },
+                tooltip: {},
+                radar: {
+                    indicator: [
+                        { name: '登录天数', max: 100 },
+                        { name: '登录时长', max: 100 },
+                        { name: '启动次数', max: 100 },
+                        { name: '访问次数', max: 100 },
+                        { name: '搜索次数', max: 100 }
+                    ]
+                },
+                series: [{
+                    name: '活跃度指标',
+                    type: 'radar',
+                    data: [{
+                        value: data.loginRadar || [0, 0, 0, 0, 0],
+                        name: '平均水平',
+                        areaStyle: { color: 'rgba(26, 179, 148, 0.3)' },
+                        lineStyle: { color: '#1ab394' }
+                    }]
+                }]
+            };
+            loginChart.setOption(loginOption);
+            $(window).resize(loginChart.resize);
+
+            // 5. 设备分布饼图
+            var deviceChart = echarts.init(document.getElementById("deviceDistribution"));
+            var deviceOption = {
+                title: { text: '用户设备型号分布', left: 'center' },
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', right: 10, top: 'center' },
+                series: [{
+                    name: '设备型号',
+                    type: 'pie',
+                    radius: '65%',
+                    data: data.deviceGroups || [],
+                    itemStyle: {
+                        emphasis: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+            deviceChart.setOption(deviceOption);
+            $(window).resize(deviceChart.resize);
+            
+            console.log("所有图表渲染完成！");
+            } catch (e) {
+                console.error("渲染图表时发生错误:", e);
+                console.error("错误堆栈:", e.stack);
+                $.modal.msgError("图表渲染失败: " + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

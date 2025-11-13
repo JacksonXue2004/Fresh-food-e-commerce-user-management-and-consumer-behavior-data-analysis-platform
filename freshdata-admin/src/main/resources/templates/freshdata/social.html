@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('社交行为分析')" />
+    <th:block th:include="include :: echarts-js" />
+    <style>
+        /* 统一的数据分析页面样式 */
+        body.gray-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f0f7 100%);
+        }
+        
+        .analysis-decorations {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .analysis-deco {
+            position: absolute;
+            opacity: 0.06;
+            animation: analysisFloat 35s ease-in-out infinite;
+        }
+        
+        .analysis-deco-1 {
+            width: 120px;
+            top: 15%;
+            right: 8%;
+        }
+        
+        .analysis-deco-2 {
+            width: 100px;
+            bottom: 20%;
+            left: 5%;
+            animation-delay: 12s;
+        }
+        
+        @keyframes analysisFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(8deg); }
+        }
+        
+        .echarts { 
+            height: 380px;
+            position: relative;
+        }
+        
+        .echarts::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(26, 179, 148, 0.03) 0%, rgba(35, 198, 200, 0.02) 100%);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        
+        .social-stat { 
+            text-align: center; 
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .social-stat:hover {
+            transform: translateY(-3px);
+        }
+        
+        .social-stat .icon { 
+            font-size: 48px; 
+            color: #1ab394;
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .social-stat .value { 
+            font-size: 28px; 
+            font-weight: bold; 
+            margin: 10px 0;
+            background: linear-gradient(135deg, #1ab394 0%, #23c6c8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .social-stat .label { 
+            color: #676a6c;
+            font-weight: 500;
+        }
+        
+        .ibox {
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .ibox:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .ibox-title {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 2px solid #1ab394;
+        }
+        
+        .ibox-title h5 i {
+            color: #1ab394;
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .analysis-decorations { display: none; }
+        }
+    </style>
+</head>
+<body class="gray-bg">
+    <div class="analysis-decorations">
+        <img th:src="@{/images/fresh/p9.png}" class="analysis-deco analysis-deco-1" alt="社交分析">
+        <img th:src="@{/images/fresh/p1.png}" class="analysis-deco analysis-deco-2" alt="社交数据">
+    </div>
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <!-- 社交数据概览 -->
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content social-stat">
+                        <i class="fa fa-user-plus icon"></i>
+                        <div class="value" id="avgFriends">-</div>
+                        <div class="label">平均好友数</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content social-stat">
+                        <i class="fa fa-users icon" style="color: #23c6c8;"></i>
+                        <div class="value" id="avgGroups">-</div>
+                        <div class="label">平均群组数</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content social-stat">
+                        <i class="fa fa-share-alt icon" style="color: #f0ad4e;"></i>
+                        <div class="value" id="avgShares">-</div>
+                        <div class="label">平均分享次数</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content social-stat">
+                        <i class="fa fa-heart icon" style="color: #ed5565;"></i>
+                        <div class="value" id="socialRate">-</div>
+                        <div class="label">社交参与率</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 社交行为分布 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-user-plus"></i> 用户添加好友数量分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="friendsDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-users"></i> 用户加入群组数量分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="groupsDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 社交互动分析 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-comments"></i> 用户社交互动行为对比</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="socialInteractionChart" style="height: 450px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分享行为分析 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-share-alt"></i> 用户分享频次分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="shareDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-bell"></i> 用户订阅行为分析</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="subscribeChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 社交关系强度分析 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-connectdevelop"></i> 社交关系强度与活跃度关联分析</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="socialStrengthChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script th:inline="javascript">
+        $(function() {
+            loadSocialData();
+        });
+
+        function loadSocialData() {
+            $.ajax({
+                url: ctx + "freshdata/analysis/socialBehavior",
+                type: "get",
+                dataType: "json",
+                success: function(result) {
+                    console.log("社交行为分析数据:", result);
+                    if (result.code == 0 && result.data) {
+                        console.log("接收到的数据字段:", Object.keys(result.data));
+                        console.log("完整数据内容:", result.data);
+                        updateSocialStats(result.data);
+                        renderSocialCharts(result.data);
+                    } else {
+                        $.modal.msgError("社交行为数据加载失败");
+                    }
+                },
+                error: function() {
+                    $.modal.msgError("服务器连接失败");
+                }
+            });
+        }
+
+        function updateSocialStats(data) {
+            $("#avgFriends").text((data.avgFriends || '0') + ' 人');
+            $("#avgGroups").text((data.avgGroups || '0') + ' 个');
+            $("#avgShares").text((data.avgShares || '0') + ' 次');
+            $("#socialRate").text((data.socialRate || '0') + '%');
+        }
+
+        function renderSocialCharts(data) {
+            // 1. 好友数量分布柱状图
+            var friendsChart = echarts.init(document.getElementById("friendsDistributionChart"));
+            var friendsOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.friendsRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '用户数',
+                    type: 'bar',
+                    data: data.friendsCounts || [],
+                    itemStyle: { color: '#1ab394' }
+                }]
+            };
+            friendsChart.setOption(friendsOption);
+            $(window).resize(friendsChart.resize);
+
+            // 2. 群组数量分布柱状图
+            var groupsChart = echarts.init(document.getElementById("groupsDistributionChart"));
+            var groupsOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.groupsRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '用户数',
+                    type: 'bar',
+                    data: data.groupsCounts || [],
+                    itemStyle: { color: '#23c6c8' }
+                }]
+            };
+            groupsChart.setOption(groupsOption);
+            $(window).resize(groupsChart.resize);
+
+            // 3. 社交互动雷达图
+            var interactionChart = echarts.init(document.getElementById("socialInteractionChart"));
+            var interactionOption = {
+                title: { text: '用户社交行为多维度对比', left: 'center' },
+                tooltip: {},
+                legend: { data: ['社交活跃用户', '普通用户'], bottom: 10 },
+                radar: {
+                    indicator: [
+                        { name: '添加好友', max: 100 },
+                        { name: '加入群组', max: 100 },
+                        { name: '分享内容', max: 100 },
+                        { name: '订阅关注', max: 100 },
+                        { name: '点击互动', max: 100 }
+                    ],
+                    splitNumber: 5,
+                    name: { textStyle: { color: '#333' } },
+                    splitArea: {
+                        areaStyle: {
+                            color: ['rgba(26, 179, 148, 0.05)', 'rgba(26, 179, 148, 0.1)',
+                                    'rgba(26, 179, 148, 0.15)', 'rgba(26, 179, 148, 0.2)',
+                                    'rgba(26, 179, 148, 0.25)', 'rgba(26, 179, 148, 0.3)']
+                        }
+                    }
+                },
+                series: [{
+                    name: '社交行为对比',
+                    type: 'radar',
+                    data: [
+                        {
+                            value: data.activeUserRadar || [90, 85, 80, 75, 95],
+                            name: '社交活跃用户',
+                            areaStyle: { color: 'rgba(26, 179, 148, 0.4)' },
+                            lineStyle: { color: '#1ab394', width: 2 }
+                        },
+                        {
+                            value: data.normalUserRadar || [40, 35, 30, 45, 50],
+                            name: '普通用户',
+                            areaStyle: { color: 'rgba(35, 198, 200, 0.3)' },
+                            lineStyle: { color: '#23c6c8', width: 2 }
+                        }
+                    ]
+                }]
+            };
+            interactionChart.setOption(interactionOption);
+            $(window).resize(interactionChart.resize);
+
+            // 4. 分享频次饼图
+            var shareChart = echarts.init(document.getElementById("shareDistributionChart"));
+            var shareOption = {
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', right: 10, top: 'center' },
+                series: [{
+                    name: '分享频次',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    data: data.shareGroups || [],
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+            shareChart.setOption(shareOption);
+            $(window).resize(shareChart.resize);
+
+            // 5. 订阅行为柱状图
+            var subscribeChart = echarts.init(document.getElementById("subscribeChart"));
+            var subscribeOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.subscribeRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '订阅数量',
+                    type: 'bar',
+                    data: data.subscribeCounts || [],
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#f5af19' },
+                            { offset: 1, color: '#f12711' }
+                        ])
+                    }
+                }]
+            };
+            subscribeChart.setOption(subscribeOption);
+            $(window).resize(subscribeChart.resize);
+
+            // 6. 社交关系强度散点图（带图例）
+            var strengthChart = echarts.init(document.getElementById("socialStrengthChart"));
+            var strengthOption = {
+                title: { 
+                    text: '社交综合强度与用户活跃度关系', 
+                    left: 'center',
+                    top: 10
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        var activity = params.value[1];
+                        var level = activity >= 40 ? '高活跃用户' : (activity >= 20 ? '中活跃用户' : '低活跃用户');
+                        return '社交强度: ' + params.value[0].toFixed(1) + '分<br/>' +
+                               '活跃度: ' + activity + '天<br/>' +
+                               '类型: ' + level;
+                    }
+                },
+                legend: {
+                    data: ['高活跃用户 (≥40天)', '中活跃用户 (20-40天)', '低活跃用户 (<20天)'],
+                    bottom: 5,
+                    left: 'center',
+                    itemGap: 20
+                },
+                grid: { left: '3%', right: '7%', bottom: '12%', top: '15%', containLabel: true },
+                xAxis: {
+                    type: 'value',
+                    name: '社交综合强度（好友+群组+分享+订阅）',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    min: 0,
+                    max: 100,
+                    splitLine: { lineStyle: { type: 'dashed' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '用户活跃度（登录天数）',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    splitLine: { lineStyle: { type: 'dashed' } }
+                },
+                series: [
+                    {
+                        name: '高活跃用户 (≥40天)',
+                        type: 'scatter',
+                        symbolSize: 6,
+                        data: (data.socialStrengthData || []).filter(item => item[1] >= 40),
+                        itemStyle: { 
+                            color: '#1ab394',
+                            opacity: 0.6 
+                        }
+                    },
+                    {
+                        name: '中活跃用户 (20-40天)',
+                        type: 'scatter',
+                        symbolSize: 6,
+                        data: (data.socialStrengthData || []).filter(item => item[1] >= 20 && item[1] < 40),
+                        itemStyle: { 
+                            color: '#f0ad4e',
+                            opacity: 0.6 
+                        }
+                    },
+                    {
+                        name: '低活跃用户 (<20天)',
+                        type: 'scatter',
+                        symbolSize: 6,
+                        data: (data.socialStrengthData || []).filter(item => item[1] < 20),
+                        itemStyle: { 
+                            color: '#d9534f',
+                            opacity: 0.6 
+                        }
+                    }
+                ]
+            };
+            strengthChart.setOption(strengthOption);
+            $(window).resize(strengthChart.resize);
+        }
+    </script>
+</body>
+</html>
+
+

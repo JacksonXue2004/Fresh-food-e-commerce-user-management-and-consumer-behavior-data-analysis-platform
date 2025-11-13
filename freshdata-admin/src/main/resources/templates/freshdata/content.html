@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('内容偏好分析')" />
+    <th:block th:include="include :: echarts-js" />
+    <style>
+        /* 统一的数据分析页面样式 */
+        body.gray-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f0f7 100%);
+        }
+        
+        .analysis-decorations {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .analysis-deco {
+            position: absolute;
+            opacity: 0.06;
+            animation: analysisFloat 35s ease-in-out infinite;
+        }
+        
+        .analysis-deco-1 {
+            width: 120px;
+            top: 15%;
+            right: 8%;
+        }
+        
+        .analysis-deco-2 {
+            width: 100px;
+            bottom: 20%;
+            left: 5%;
+            animation-delay: 12s;
+        }
+        
+        @keyframes analysisFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-25px) rotate(8deg); }
+        }
+        
+        .echarts { 
+            height: 380px;
+            position: relative;
+        }
+        
+        .echarts::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(26, 179, 148, 0.03) 0%, rgba(35, 198, 200, 0.02) 100%);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        
+        .content-card { 
+            padding: 20px; 
+            text-align: center; 
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .content-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content-card.read { 
+            border-color: #1ab394;
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdf9 100%);
+        }
+        
+        .content-card.collect { 
+            border-color: #f0ad4e;
+            background: linear-gradient(135deg, #ffffff 0%, #fffbf0 100%);
+        }
+        
+        .content-card h2 { 
+            margin: 0; 
+            font-size: 32px; 
+            font-weight: bold;
+            background: linear-gradient(135deg, #1ab394 0%, #23c6c8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .content-card p { 
+            margin-top: 10px; 
+            color: #676a6c;
+            font-weight: 500;
+        }
+        
+        .ibox {
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .ibox:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .ibox-title {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-bottom: 2px solid #1ab394;
+        }
+        
+        .ibox-title h5 i {
+            color: #1ab394;
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .analysis-decorations { display: none; }
+        }
+    </style>
+</head>
+<body class="gray-bg">
+    <div class="analysis-decorations">
+        <img th:src="@{/images/fresh/p2.png}" class="analysis-deco analysis-deco-1" alt="内容偏好">
+        <img th:src="@{/images/fresh/p3.png}" class="analysis-deco analysis-deco-2" alt="内容分析">
+    </div>
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <!-- 内容数据概览 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content content-card read">
+                        <h2 id="avgReadCount">-</h2>
+                        <p><i class="fa fa-book"></i> 平均内容阅读次数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-content content-card collect">
+                        <h2 id="avgCollectCount">-</h2>
+                        <p><i class="fa fa-star"></i> 平均内容收藏次数</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容阅读与收藏对比 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-line-chart"></i> 内容阅读与收藏行为对比</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="readCollectComparisonChart" style="height: 450px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容阅读与收藏分布 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-book"></i> 用户内容阅读次数分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="readDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-star"></i> 用户内容收藏次数分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="collectDistributionChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容偏好分析 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-thumb-tack"></i> 用户内容偏好分析</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="contentPreferenceChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 阅读深度与收藏率关系 -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-exchange"></i> 阅读转化收藏漏斗</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="readToCollectFunnelChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-percent"></i> 内容收藏率分布</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="collectRateChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容互动深度分析 -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5><i class="fa fa-sitemap"></i> 内容阅读与收藏关系散点图</h5>
+                        <div class="ibox-tools">
+                            <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                        </div>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="echarts" id="readCollectRelationChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script th:inline="javascript">
+        $(function() {
+            loadContentData();
+        });
+
+        function loadContentData() {
+            $.ajax({
+                url: ctx + "freshdata/analysis/contentPreference",
+                type: "get",
+                dataType: "json",
+                success: function(result) {
+                    if (result.code == 0 && result.data) {
+                        updateContentStats(result.data);
+                        renderContentCharts(result.data);
+                    } else {
+                        $.modal.msgError("内容偏好数据加载失败");
+                    }
+                },
+                error: function() {
+                    $.modal.msgError("服务器连接失败");
+                }
+            });
+        }
+
+        function updateContentStats(data) {
+            $("#avgReadCount").text((data.avgReadCount || '0') + ' 次');
+            $("#avgCollectCount").text((data.avgCollectCount || '0') + ' 次');
+        }
+
+        function renderContentCharts(data) {
+            // 1. 阅读与收藏对比双轴图
+            var comparisonChart = echarts.init(document.getElementById("readCollectComparisonChart"));
+            var comparisonOption = {
+                title: { text: '内容阅读与收藏趋势对比', left: 'center' },
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['阅读次数', '收藏次数'], bottom: 10 },
+                grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: data.categories || ['0-5次', '6-10次', '11-20次', '21-50次', '51-100次', '100+次']
+                },
+                yAxis: [
+                    { type: 'value', name: '用户数', position: 'left' },
+                    { type: 'value', name: '占比', position: 'right', axisLabel: { formatter: '{value}%' } }
+                ],
+                series: [
+                    {
+                        name: '阅读次数',
+                        type: 'bar',
+                        data: data.readCounts || [],
+                        itemStyle: { color: '#1ab394' }
+                    },
+                    {
+                        name: '收藏次数',
+                        type: 'bar',
+                        data: data.collectCounts || [],
+                        itemStyle: { color: '#f0ad4e' }
+                    },
+                    {
+                        name: '收藏转化率',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: data.collectRates || [],
+                        itemStyle: { color: '#ed5565' },
+                        smooth: true
+                    }
+                ]
+            };
+            comparisonChart.setOption(comparisonOption);
+            $(window).resize(comparisonChart.resize);
+
+            // 2. 阅读次数分布面积图
+            var readChart = echarts.init(document.getElementById("readDistributionChart"));
+            var readOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.readRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '阅读次数',
+                    type: 'line',
+                    data: data.readDistribution || [],
+                    smooth: true,
+                    areaStyle: { color: 'rgba(26, 179, 148, 0.3)' },
+                    itemStyle: { color: '#1ab394' }
+                }]
+            };
+            readChart.setOption(readOption);
+            $(window).resize(readChart.resize);
+
+            // 3. 收藏次数分布面积图
+            var collectChart = echarts.init(document.getElementById("collectDistributionChart"));
+            var collectOption = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.collectRanges || [] },
+                yAxis: { type: 'value', name: '用户数' },
+                series: [{
+                    name: '收藏次数',
+                    type: 'line',
+                    data: data.collectDistribution || [],
+                    smooth: true,
+                    areaStyle: { color: 'rgba(240, 173, 78, 0.3)' },
+                    itemStyle: { color: '#f0ad4e' }
+                }]
+            };
+            collectChart.setOption(collectOption);
+            $(window).resize(collectChart.resize);
+
+            // 4. 内容偏好雷达图
+            var preferenceChart = echarts.init(document.getElementById("contentPreferenceChart"));
+            var preferenceOption = {
+                title: { text: '用户内容消费偏好分析', left: 'center' },
+                tooltip: {},
+                radar: {
+                    indicator: [
+                        { name: '内容阅读', max: 100 },
+                        { name: '内容收藏', max: 100 },
+                        { name: '推荐访问', max: 100 },
+                        { name: '促销关注', max: 100 },
+                        { name: '任务完成', max: 100 }
+                    ],
+                    splitNumber: 5,
+                    name: { textStyle: { color: '#333' } },
+                    splitArea: {
+                        areaStyle: {
+                            color: ['rgba(26, 179, 148, 0.05)', 'rgba(26, 179, 148, 0.1)',
+                                    'rgba(26, 179, 148, 0.15)', 'rgba(26, 179, 148, 0.2)',
+                                    'rgba(26, 179, 148, 0.25)', 'rgba(26, 179, 148, 0.3)']
+                        }
+                    }
+                },
+                series: [{
+                    name: '内容偏好',
+                    type: 'radar',
+                    data: [{
+                        value: data.contentRadar || [80, 70, 60, 50, 75],
+                        name: '平均偏好',
+                        areaStyle: { color: 'rgba(26, 179, 148, 0.4)' },
+                        lineStyle: { color: '#1ab394', width: 2 }
+                    }]
+                }]
+            };
+            preferenceChart.setOption(preferenceOption);
+            $(window).resize(preferenceChart.resize);
+
+            // 5. 阅读转化收藏漏斗
+            var funnelChart = echarts.init(document.getElementById("readToCollectFunnelChart"));
+            var funnelOption = {
+                title: { text: '从阅读到收藏的转化路径', left: 'center' },
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b} : {c}人' },
+                series: [{
+                    name: '转化漏斗',
+                    type: 'funnel',
+                    left: '10%',
+                    width: '80%',
+                    label: { position: 'inside', formatter: '{b}: {c}' },
+                    data: data.readCollectFunnel || [
+                        {value: 100, name: '浏览内容'},
+                        {value: 80, name: '开始阅读'},
+                        {value: 60, name: '阅读完成'},
+                        {value: 30, name: '点击收藏'},
+                        {value: 20, name: '确认收藏'}
+                    ],
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }
+                }]
+            };
+            funnelChart.setOption(funnelOption);
+            $(window).resize(funnelChart.resize);
+
+            // 6. 收藏率分布饼图
+            var rateChart = echarts.init(document.getElementById("collectRateChart"));
+            var rateOption = {
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+                legend: { orient: 'vertical', right: 10, top: 'center' },
+                series: [{
+                    name: '收藏率',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    data: data.collectRateGroups || [],
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+            rateChart.setOption(rateOption);
+            $(window).resize(rateChart.resize);
+
+            // 7. 阅读与收藏关系散点图
+            var relationChart = echarts.init(document.getElementById("readCollectRelationChart"));
+            var relationOption = {
+                title: { text: '用户阅读次数与收藏次数的关系', left: 'center' },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '阅读次数: {value[0]}<br/>收藏次数: {value[1]}'
+                },
+                grid: { left: '3%', right: '7%', bottom: '7%', containLabel: true },
+                xAxis: {
+                    type: 'value',
+                    name: '内容阅读次数',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    splitLine: { lineStyle: { type: 'dashed' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '内容收藏次数',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    splitLine: { lineStyle: { type: 'dashed' } }
+                },
+                series: [{
+                    name: '阅读-收藏关系',
+                    type: 'scatter',
+                    symbolSize: 8,
+                    data: data.readCollectRelation || [],
+                    itemStyle: { color: '#1ab394', opacity: 0.6 }
+                }]
+            };
+            relationChart.setOption(relationOption);
+            $(window).resize(relationChart.resize);
+        }
+    </script>
+</body>
+</html>
+
+
