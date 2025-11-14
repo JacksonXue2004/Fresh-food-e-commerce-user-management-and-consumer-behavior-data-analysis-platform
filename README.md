@@ -1,16 +1,21 @@
 # Fresh Data Management Platform
 
-This repository hosts a customized build of the **RuoYi** ecosystem that powers a user management and consumer behavior analytics platform. The project aggregates operational data, provides rich dashboards, and supports rule-based scheduling via Quartz.
+This repository contains a streamlined RuoYi-based solution that focuses on two business domains:
+
+1. **User management:** account lifecycle, role authorization, and operational auditing.
+2. **Consumer-data analytics:** dashboards that surface behavioral metrics sourced from curated CSV inputs and SQL views.
+
+The implementation keeps the familiar RuoYi technology stack while trimming unused demos so the README tracks the current scope.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
+- [Repository Layout](#repository-layout)
 - [Getting Started](#getting-started)
 - [Configuration](#configuration)
 - [Database Setup](#database-setup)
-- [Build & Deployment](#build--deployment)
+- [Build & Run](#build--run)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
@@ -18,122 +23,105 @@ This repository hosts a customized build of the **RuoYi** ecosystem that powers 
 
 ## Features
 
-- User, role, and permission management with Shiro integration.
-- Consumer behavior analytics dashboards and reports.
-- Scheduled jobs powered by Quartz.
-- Code generator for rapid CRUD scaffolding.
-- Responsive front-end based on the RuoYi UI theme.
-- Maven multi-module project for modular maintenance.
+- **Centralized user management:** account CRUD, role assignments, department hierarchy, and permission control powered by Apache Shiro.
+- **Consumer behavior analytics:** curated dashboards (ECharts + Bootstrap) that visualize trends sourced from `app_data_cleaned.csv` and the analytical SQL scripts under `数据库脚本/`.
+- **Operations visibility:** login/operation logging, parameter dictionaries, and menu management aligned with the RuoYi back-office ergonomics.
 
 ## Tech Stack
 
-- **Backend:** Spring Boot 2.5, Spring Framework 5.3, Apache Shiro, MyBatis
-- **Database:** MySQL (recommended 5.7+)
-- **Scheduling:** Quartz
-- **Build:** Maven 3.6+, Java 8
-- **Front-end:** RuoYi UI (Thymeleaf, jQuery, Bootstrap)
+- **Backend:** Spring Boot 2.5.15, Spring Framework 5.3.39, Apache Shiro, MyBatis, Druid connection pool.
+- **Frontend:** Thymeleaf templates with the RuoYi UI kit (Bootstrap, jQuery, ECharts).
+- **Data storage:** MySQL 5.7+.
+- **Build & tooling:** Maven 3.6+, JDK 8, Velocity templates for internal code scaffolding, Ehcache for session caching.
 
-## Project Structure
+## Repository Layout
 
 ```
 freshdata-admin/      # Web application (controllers, views, static resources)
-freshdata-common/     # Shared utilities and domain models
-freshdata-framework/  # Core framework extensions (config, security)
-freshdata-generator/  # Code generator module
-freshdata-quartz/     # Quartz job definitions and services
-freshdata-system/     # System management services (users, menus, logs)
-数据库脚本/              # SQL scripts for schema and seed data
-bin/                  # Convenience scripts for Windows users
-项目完整说明.md           # Extended Chinese documentation
-如何开启注册功能.md        # Guide for enabling user registration
-pom.xml               # Parent Maven build descriptor
+freshdata-common/     # Domain objects, DTOs, utilities shared by all modules
+freshdata-framework/  # Core configuration (security, filters, logging)
+freshdata-generator/  # Internal scaffolding templates (kept for dev use)
+freshdata-quartz/     # Quartz job definitions; optional, only build if needed
+freshdata-system/     # Business services (users, menus, parameter configs)
+bin/                  # Windows helper scripts (build, run, clean)
+数据库脚本/              # SQL schema + data for analytics dashboards
+app_data_cleaned.csv  # Sample dataset for consumer analytics
+pom.xml               # Parent Maven configuration
 README.md             # Project overview (this file)
-.gitignore            # Git ignore rules
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Java Development Kit (JDK) 8
+- JDK 8 (set `JAVA_HOME` accordingly)
 - Maven 3.6 or later
-- MySQL database server
-- Node.js 14+ (optional, if you plan to rebuild front-end assets)
+- MySQL 5.7+ with a user that can create databases
 
-### Installation
+### Build & package
 
 ```bash
-# Clone the repository
 git clone https://github.com/<your-account>/<repo>.git
 cd <repo>
-
-# Build all modules
 mvn clean package -DskipTests
 ```
 
-The assembled application JAR will be located under `freshdata-admin/target/`.
+The assembled Spring Boot executable is generated at `freshdata-admin/target/freshdata-admin.jar`.
 
 ## Configuration
 
-- **Application properties:** `freshdata-admin/src/main/resources/application.yml`
-- **Datasource settings:** Update the `spring.datasource.*` entries with your MySQL credentials.
-- **Redis (optional):** Configure Redis settings if you enable caching or session sharing.
-- **Logging:** Adjust `logback.xml` under `freshdata-admin/src/main/resources/` to tailor logging levels and appenders.
+Key configuration files within `freshdata-admin/src/main/resources/`:
 
-Environment-specific overrides can be added by creating additional profiles such as `application-dev.yml` or `application-prod.yml`.
+- `application.yml`: base application settings, including the default datasource URL (`ry-vue` DB).
+- `application-druid.yml`: Druid-specific connection-pool tuning.
+- `logback.xml`: logging levels and appenders.
+
+Update `spring.datasource.url`, `spring.datasource.username`, and `spring.datasource.password` to point at your MySQL instance. Add extra Spring profiles (e.g., `application-dev.yml`) if you need environment overrides.
 
 ## Database Setup
 
-1. Create a database (default name `ry-vue` or customize in `application.yml`).
-2. Execute the SQL scripts located in `数据库脚本/` in the following order:
-   - `ry_20250416.sql`
-   - Any incremental scripts (`add_freshdata_menus.sql`, `complete_import.sql`, etc.) as required by your deployment.
-3. Verify that core tables such as `sys_user`, `sys_role`, and analytics-specific tables exist.
+1. Create the target database (default `ry-vue`).
+2. Run the scripts inside `数据库脚本/`:
+   - `ry_20250416.sql` seeds the schema, menus, and admin account (`admin` / `admin123`).
+   - Apply optional deltas such as `add_freshdata_menus.sql`, `complete_import.sql`, or cleanup scripts depending on your deployment plan.
+3. Import `app_data_cleaned.csv` wherever your analytics ETL expects it (CSV copy exists under both repo root and `freshdata-admin/src/main/resources/`).
 
-## Build & Deployment
+## Build & Run
 
-### Development Run
+### Development
 
 ```bash
-# Start the Spring Boot application
 cd freshdata-admin
 mvn spring-boot:run
 ```
 
-Access the UI at `http://localhost:8080/`. Default credentials can be found in the SQL seed data (`admin/admin123` unless changed).
+Visit `http://localhost:8080/` and sign in with the credentials provisioned by the SQL scripts.
 
-### Production Package
+### Production
 
 ```bash
 mvn clean package -Pprod
 java -jar freshdata-admin/target/freshdata-admin.jar --spring.profiles.active=prod
 ```
 
-Ensure that the production profile includes the correct datasource, Redis, and security settings.
+Ensure the `prod` profile provides the correct datasource, file storage, and security hardening before exposing the service.
 
 ## Troubleshooting
 
-- **Login fails:** Check Shiro configuration and verify that the `sys_user` table contains the admin account.
-- **Static resources missing:** Confirm that the `static` directory is bundled within `freshdata-admin/target/classes/`.
-- **Quartz jobs not running:** Review Quartz job logs and database tables (`qrtz_*`). Make sure the scheduler is enabled in `application.yml`.
-- **Port conflicts:** Adjust `server.port` in `application.yml` if 8080 is occupied.
+- **Login failures:** verify the `sys_user` table and confirm password encryption matches the seeded admin account.
+- **Static assets missing:** rerun `mvn clean package`; the `static/` directory should be bundled under `freshdata-admin/target/classes/`.
+- **Analytics data empty:** confirm CSV imports and that the `complete_import.sql` script has been executed.
+- **Port conflict:** change `server.port` inside `application.yml` if 8080 is occupied.
 
 ## Contributing
 
-Pull requests are welcome. For substantial changes:
-
-1. Fork the repository and create a feature branch.
-2. Ensure new code is covered by tests or manual verification.
-3. Follow existing code style and document configuration changes.
-4. Submit a PR with a clear description of enhancements or fixes.
+Internal-only contributions should follow the existing package naming, controller/service layering, and code formatting. When adding analytics widgets, accompany template changes with the relevant SQL or CSV documentation so the dashboards stay reproducible.
 
 ## License
 
-This project inherits licensing from the upstream RuoYi framework. See the original [RuoYi license](https://gitee.com/y_project/RuoYi/blob/master/LICENSE) for details. Confirm compliance with your organization’s policies before deploying.
+The project inherits the upstream [RuoYi license](https://gitee.com/y_project/RuoYi/blob/master/LICENSE). Verify compatibility with your organization before deploying.
 
 ## Acknowledgements
 
-- [RuoYi](https://gitee.com/y_project/RuoYi) for the original framework and UI.
-- Contributors who provided data analytics enhancements and documentation.
-
-
+- [RuoYi](https://gitee.com/y_project/RuoYi) for the base framework and UI theme.
+- Teammates who curated the consumer-data dataset and dashboard designs.
